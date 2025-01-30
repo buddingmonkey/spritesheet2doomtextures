@@ -78,8 +78,63 @@ function getSubimageBoundingBoxes(pngImage, backgroundColor) {
       }
     }
   }
+  
+  let combinedBoxes = combineOverlappingBoxes();
+  boundingBoxes = combinedBoxes;
 
+  // it has to run twice because the overlaps might overlap
+  combinedBoxes = combineOverlappingBoxes();
+  boundingBoxes = combinedBoxes;
+  
   return boundingBoxes;
+}
+
+
+function combineOverlappingBoxes() {
+  const combinedBoxes = [];
+  while (boundingBoxes.length > 0) {
+    const currentBox = boundingBoxes.shift(); // Get the first box and remove it from the array
+    let merged = false;
+
+    for (let i = 0; i < combinedBoxes.length; i++) {
+      const existingBox = combinedBoxes[i];
+
+      if (overlaps(currentBox, existingBox)) {
+        const combined = combineBoxes(currentBox, existingBox);
+        combinedBoxes[i] = combined; // Replace the existing box with the combined one
+        merged = true;
+        break; // Exit the inner loop since we've merged
+      }
+    }
+
+    if (!merged) {
+      combinedBoxes.push(currentBox); // If no overlap, add the box as is
+    }
+  }
+  return combinedBoxes;
+}
+
+function overlaps(box1, box2, tolerance = 3) {  // Added tolerance parameter
+  return !(
+      box1.x + box1.width + tolerance <= box2.x - tolerance || // box1 is to the left of box2 (with tolerance)
+      box1.x - tolerance >= box2.x + box2.width + tolerance || // box1 is to the right of box2 (with tolerance)
+      box1.y + box1.height + tolerance <= box2.y - tolerance || // box1 is above box2 (with tolerance)
+      box1.y - tolerance >= box2.y + box2.height + tolerance    // box1 is below box2 (with tolerance)
+  );
+}
+
+function combineBoxes(box1, box2) {
+    const minX = Math.min(box1.x, box2.x);
+    const minY = Math.min(box1.y, box2.y);
+    const maxX = Math.max(box1.x + box1.width, box2.x + box2.width);
+    const maxY = Math.max(box1.y + box1.height, box2.y + box2.height);
+
+    return {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY
+    };
 }
 
 imageInput.addEventListener('change', (event) => {
