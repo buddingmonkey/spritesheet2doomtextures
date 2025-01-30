@@ -5,15 +5,15 @@ const outputButton = document.getElementById('outputButton');
 const outputDiv = document.getElementById('output');
 
 let filename = "FILENAME";
-let transparentColor = { r: 255, g: 255, b: 255, a: 0 }; // Default transparent
+let transparentColor = undefined; // Default transparent
 let boundingBoxes = []; // Store bounding boxes for output generation
 
-function getSubimageBoundingBoxes(pngImage, backgroundColor) {
-  const canvas = document.createElement('canvas');
-  canvas.width = pngImage.width;
-  canvas.height = pngImage.height;
-  ctx.drawImage(pngImage, 0, 0);
+let tolerance = 2;
 
+function getSubimageBoundingBoxes(pngImage, backgroundColor) {
+  if (!transparentColor) return;
+
+  boundingBoxes = []; // Clear the array
   const bgR = backgroundColor.r;
   const bgG = backgroundColor.g;
   const bgB = backgroundColor.b;
@@ -118,7 +118,7 @@ function combineOverlappingBoxes() {
     for (let i = 0; i < combinedBoxes.length; i++) {
       const existingBox = combinedBoxes[i];
 
-      if (overlaps(currentBox, existingBox)) {
+      if (overlaps(currentBox, existingBox, tolerance)) {
         const combined = combineBoxes(currentBox, existingBox);
         combinedBoxes[i] = combined; // Replace the existing box with the combined one
         merged = true;
@@ -133,7 +133,7 @@ function combineOverlappingBoxes() {
   return combinedBoxes;
 }
 
-function overlaps(box1, box2, tolerance = 3) {  // Added tolerance parameter
+function overlaps(box1, box2, tolerance = 2) {  // Added tolerance parameter
   return !(
       box1.x + box1.width + tolerance <= box2.x - tolerance || // box1 is to the left of box2 (with tolerance)
       box1.x - tolerance >= box2.x + box2.width + tolerance || // box1 is to the right of box2 (with tolerance)
@@ -170,6 +170,28 @@ imageInput.addEventListener('change', (event) => {
       imageCanvas.height = pngImage.height;
       ctx.drawImage(pngImage, 0, 0);
 
+      function redraw() {
+        ctx.clearRect(0, 0, imageCanvas.width, imageCanvas.height); // Clear the canvas
+        ctx.drawImage(pngImage, 0, 0); // Redraw the image
+
+        boundingBoxes = getSubimageBoundingBoxes(pngImage, transparentColor, tolerance); // Use current tolerance
+        
+        if (!boundingBoxes) return;
+
+        boundingBoxes.forEach((box, index) => {
+          ctx.strokeStyle = 'red';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+          // Draw order number
+          ctx.font = "12px Arial"; // Adjust font as needed
+          ctx.fillStyle = "red";
+          ctx.textAlign = "right"; // Align text to the right
+          ctx.textBaseline = "bottom"; // Align text to the bottom
+          ctx.fillText(index + 1, box.x + box.width - 2, box.y + box.height - 2);
+        });
+      }
+        
       // Color picking from the image
       imageCanvas.addEventListener('click', (event) => {
         const x = event.offsetX;
@@ -185,23 +207,18 @@ imageInput.addEventListener('change', (event) => {
         console.log("Transparent color selected:", transparentColor); // For debugging
 
         // Redraw with the new transparent color
-        ctx.drawImage(pngImage, 0, 0); // Clear the canvas
-
-        const boxes = getSubimageBoundingBoxes(pngImage, transparentColor);
-        boxes.forEach((box, index) => {
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(box.x, box.y, box.width, box.height);
-
-                // Draw order number
-            ctx.font = "12px Arial"; // Adjust font as needed
-            ctx.fillStyle = "red";
-            ctx.textAlign = "right"; // Align text to the right
-            ctx.textBaseline = "bottom"; // Align text to the bottom
-            ctx.fillText(index + 1, box.x + box.width - 2, box.y + box.height - 2); // Position text in bottom right
-        });
+        redraw();
       });
 
+      // Tolerance slider event listener
+      toleranceSlider.addEventListener('input', () => {
+        tolerance = parseInt(toleranceSlider.value); // Get the numeric value
+        toleranceValue.textContent = tolerance; // Update the displayed value
+
+        if (pngImage && pngImage.complete) { // Check if the image is loaded
+            redraw(); // Redraw with the new tolerance
+        }
+      });
     };
     pngImage.onerror = () => {
         alert("Error loading image.");
