@@ -84,6 +84,25 @@ function getSubimageBoundingBoxes(pngImage, backgroundColor) {
 
   // it has to run twice because the overlaps might overlap
   combinedBoxes = combineOverlappingBoxes();
+
+  let globalTop = Math.min(...combinedBoxes.map(box => box.y));
+
+  combinedBoxes.sort((a, b) => {
+      const aTop = a.y;
+      const bTop = b.y;
+      const aCenterX = a.x + a.width / 2;
+      const bCenterX = b.x + b.width / 2;
+
+      const rowA = Math.floor((aTop - globalTop) / 20); // Adjust 20 for row height/spacing
+      const rowB = Math.floor((bTop - globalTop) / 20);
+
+      if (rowA === rowB) {
+          return aCenterX - bCenterX; // Sort by center X if on the same row
+      }
+
+      return rowA - rowB; // Sort by row index
+  });
+
   boundingBoxes = combinedBoxes;
 
   return boundingBoxes;
@@ -169,10 +188,17 @@ imageInput.addEventListener('change', (event) => {
         ctx.drawImage(pngImage, 0, 0); // Clear the canvas
 
         const boxes = getSubimageBoundingBoxes(pngImage, transparentColor);
-        boxes.forEach(box => {
+        boxes.forEach((box, index) => {
             ctx.strokeStyle = 'red';
             ctx.lineWidth = 2;
             ctx.strokeRect(box.x, box.y, box.width, box.height);
+
+                // Draw order number
+            ctx.font = "12px Arial"; // Adjust font as needed
+            ctx.fillStyle = "red";
+            ctx.textAlign = "right"; // Align text to the right
+            ctx.textBaseline = "bottom"; // Align text to the bottom
+            ctx.fillText(index + 1, box.x + box.width - 2, box.y + box.height - 2); // Position text in bottom right
         });
       });
 
