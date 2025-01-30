@@ -85,7 +85,7 @@ function getSubimageBoundingBoxes(pngImage, backgroundColor) {
   // it has to run twice because the overlaps might overlap
   combinedBoxes = combineOverlappingBoxes();
   boundingBoxes = combinedBoxes;
-  
+
   return boundingBoxes;
 }
 
@@ -191,9 +191,9 @@ outputButton.addEventListener('click', () => {
   let outputText = "";
   for (let i = 0; i < boundingBoxes.length; i++) {
     const box = boundingBoxes[i];
-    outputText += `Sprite "${filename}${i + 1}", ${box.width}, ${box.height}\n`;
+    outputText += `Sprite "${filename}", ${box.width}, ${box.height}\n`;
     outputText += "{\n";
-    outputText += `\tPatch "${spriteName}", -${box.x}, -${box.y}\n`; // X and Y are already relative to 0,0
+    outputText += `\tPatch "${spriteName}${i + 1}", -${box.x}, -${box.y}\n`; // X and Y are already relative to 0,0
     outputText += "}\n\n";
   }
   outputDiv.textContent = outputText;
